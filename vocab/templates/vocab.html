@@ -78,37 +78,95 @@
   </div> <!-- col -->
 </div> <!-- row -->
 <br />
+<!-- We use codes below to check -->
 <div class="row">
   <div class="col-xs-6 text-center">
-  <form id="entry" method="POST" action="/_check">
+  <form id="entry"> <!--Delete form -->
     <label for="attempt">Word:</label>
     <input id="attempt" name="attempt" type="text" width="15"
       autocomplete="off"  autofocus />
-    <input type="submit" name="try" />
   </form>
 </div></div>
 
+<p id="response"> </p>  <!-- JavaScript will insert text here -->
+<p id="words"> </p>  <!-- JavaScript will insert words here -->
 <br />
 
-{% if session.matches|length is not equalto 0  %}
-<h2>You found </h2>
-<p id="results">
-  {% for match in session.matches %}
-  {{ match }} 
-  {% endfor %}
-</p>
-{% endif %}
+<!--
+Codes below are used to change the interaction to response for each keystroke
+Code reference: templates/minijax.html. Author: Michal Young.
+-->
+<script>
 
+// Suppress normal form submission
+$("#entry").submit( function(event) {
+   event.preventDefault();
+  });
 
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <!-- Mismatch, already found, etc. "flashed" from Python -->
-    {% for message in messages %}
-      <p class="message">{{ message }}</p>
-    {% endfor %}
-  {% endif %}
-{% endwith %}
+// On each keystroke, ask the server whether the current
+// word is long enough.
+//
+// We use 'keyup' because the form value
+// is updated before that event is generated.
+// keypress is triggered before the input field has been
+// updated.  Be aware that we'll see non-character keys like
+// shift and control, so make sure whatever you do with the
+// event does not depend on it being a letter.
+//
+$("#attempt").keyup(function(event) {
+   var txt = $("#attempt").val();  // Current content of the input field
+   var keycode = event.which;      // They key that just went up
+   var letter = String.fromCharCode(keycode);
 
+   // That letter might not be a letter ... it could be the
+   // the backspace key, or even the shift key, because 'keyup'
+   // catches all kinds of keys.  (Also, the difference between
+   // upper and lower case comes from state of shift key + key code,
+   // so ignoring the shift key we get only the upper case letters.
+
+   if (! "ABCDEFGHIJKLMNOPQRSTUVWXYZ".includes(letter)) { return }
+
+   $.getJSON( "/_check", { text: txt },
+              function(data) {
+                rslt = data.result;
+
+{#                if (rslt.in_anagram)#}
+{#                {#}
+                    if (rslt.current_status === "matched" && rslt.enough_length) {
+                        $("#attempt").val("");
+                        $("#response").val("");
+                        $("#words").val("");
+                        window.location.replace("/success")
+                    }
+                    else if (rslt.current_status === "matched") {
+                        $("#attempt").val("");
+                        $("#response").html("You found:");
+                        $("#words").html(rslt.matched_list);
+                    }
+                    else if (rslt.current_status === "existed") {
+                        $("#response").html("You already found " + rslt.word);
+                    }
+                    else if (rslt.current_status === "unmatched") {
+                        $("#response").html(rslt.word + " isn't in the list of words");
+                    }
+                    else if (rslt.current_status === " cannot made") {
+                        $("#attempt").val("");
+                        $("#response").html(rslt.word + " can\'t be made from the letters " + rslt.jumble);
+                    }
+                    else {
+                        $("#response").html("This case shouldn't happen!");
+                    }
+{#                }#}
+{#                else#}
+{#                {#}
+{#                    $("#attempt").val("");#}
+{#                    $("#response").html("Please enter letters in anagram");#}
+{#                }#}
+
+               }
+           );
+   });
+</script>
 
 
  </div> <!-- container -->

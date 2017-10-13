@@ -5,7 +5,7 @@ A list of vocabulary words (designed for an ELL class).
 
 class Vocab():
     """
-    A list of vocabularly words.
+    A list of vocabulary words.
     Can be instantiated with a file or list of strings.
     """
 
@@ -42,7 +42,7 @@ class Vocab():
         Is word present in vocabulary list?
         Args:
            word: a string
-        Reurns: true if word occurs in the vocabularly list
+        Returns: true if word occurs in the vocabulary list
         """
         low = 0
         high = len(self.words) - 1

@@ -30,6 +30,7 @@ app.secret_key = CONFIG.SECRET_KEY  # Should allow using session variables
 
 WORDS = Vocab(CONFIG.VOCAB)
 
+
 ###
 # Pages
 ###
@@ -66,6 +67,7 @@ def keep_going():
 def success():
     return flask.render_template('success.html')
 
+
 #######################
 # Form handler.
 # CIS 322 note:
@@ -74,7 +76,7 @@ def success():
 #######################
 
 
-@app.route("/_check", methods=["POST"])
+@app.route("/_check")
 def check():
     """
     User has submitted the form with a word ('attempt')
@@ -85,37 +87,55 @@ def check():
     already found.
     """
     app.logger.debug("Entering check")
-
-    # The data we need, from form and from cookie
-    text = flask.request.form["attempt"]
+    # The data we need, from vocab html
+    text = flask.request.args.get("text", type=str)
     jumble = flask.session["jumble"]
     matches = flask.session.get("matches", [])  # Default to empty list
-
     # Is it good?
     in_jumble = LetterBag(jumble).contains(text)
     matched = WORDS.has(text)
+    in_anagram = check_input(text, jumble)
 
     # Respond appropriately
     if matched and in_jumble and not (text in matches):
         # Cool, they found a new word
         matches.append(text)
         flask.session["matches"] = matches
+        current_status = "matched"
     elif text in matches:
-        flask.flash("You already found {}".format(text))
+        current_status = "existed"
     elif not matched:
-        flask.flash("{} isn't in the list of words".format(text))
+        current_status = "unmatched"
     elif not in_jumble:
-        flask.flash(
-            '"{}" can\'t be made from the letters {}'.format(text, jumble))
+        current_status = "cannot made"
     else:
         app.logger.debug("This case shouldn't happen!")
         assert False  # Raises AssertionError
+    # Save all data into rslt to send
+    rslt = {"enough_length": len(matches) >= flask.session["target_count"],
+            "current_status": current_status,
+            "matched_list": matches,
+            "jumble": jumble,
+            "word": text}
+    return flask.jsonify(result=rslt)
 
-    # Choose page:  Solved enough, or keep going?
-    if len(matches) >= flask.session["target_count"]:
-       return flask.redirect(flask.url_for("success"))
-    else:
-       return flask.redirect(flask.url_for("keep_going"))
+
+# "in_anagram": in_anagram,
+
+def check_input(text, jumble):
+    """
+    check the input and determine whether it is in the anagram.
+    Args:
+        text: a string need to be tested.
+        jumble: a string may contains text varible.
+    returns:
+        True, if every word in text in te jumble, otherwise return False.
+    """
+    for each in text:
+        if each not in jumble:
+            return False
+    return True
+
 
 ###############
 # AJAX request handlers
@@ -143,7 +163,9 @@ def format_filt(something):
     Example of a filter that can be used within
     the Jinja2 code
     """
+    # I believe we use filter to enhance features in Jinja2
     return "Not what you asked for"
+
 
 ###################
 #   Error handlers
@@ -177,4 +199,4 @@ if __name__ == "__main__":
         app.logger.setLevel(logging.DEBUG)
         app.logger.info(
             "Opening for global access on port {}".format(CONFIG.PORT))
-        app.run(port=CONFIG.PORT, host="0.0.0.0")
+    app.run(port=CONFIG.PORT, host="0.0.0.0")
