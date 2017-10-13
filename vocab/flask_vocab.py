@@ -120,23 +120,6 @@ def check():
     return flask.jsonify(result=rslt)
 
 
-# "in_anagram": in_anagram,
-
-def check_input(text, jumble):
-    """
-    check the input and determine whether it is in the anagram.
-    Args:
-        text: a string need to be tested.
-        jumble: a string may contains text varible.
-    returns:
-        True, if every word in text in te jumble, otherwise return False.
-    """
-    for each in text:
-        if each not in jumble:
-            return False
-    return True
-
-
 ###############
 # AJAX request handlers
 #   These return JSON, rather than rendering pages.
