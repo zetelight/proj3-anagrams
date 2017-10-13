@@ -94,7 +94,6 @@ def check():
     # Is it good?
     in_jumble = LetterBag(jumble).contains(text)
     matched = WORDS.has(text)
-    in_anagram = check_input(text, jumble)
 
     # Respond appropriately
     if matched and in_jumble and not (text in matches):
